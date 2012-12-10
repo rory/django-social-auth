@@ -66,6 +66,19 @@ class FacebookBackend(OAuthBackend):
                 'first_name': response.get('first_name', ''),
                 'last_name': response.get('last_name', '')}
 
+    def extra_data(self, user, uid, response, details):
+        """Make a Facebook API call to see what permissions we have been granted by the user"""
+        # Include original extra_data
+        extra_data = super(FacebookBackend, self).extra_data(user, uid, response, details)
+
+        # make a facebook API call to see what permissions we have been granted
+        if 'access_token' in extra_data:
+            permissions_details = simplejson.loads(dsa_urlopen("https://graph.facebook.com/me/permissions?access_token="+extra_data['access_token']).read())
+            permissions = [perm_name for perm_name in permissions_details['data'][0] if permissions_details['data'][0][perm_name] == 1]
+            extra_data['permissions'] = permissions
+
+        return extra_data
+
 
 class FacebookAuth(BaseOAuth2):
     """Facebook OAuth2 support"""
